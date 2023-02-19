@@ -39,6 +39,7 @@ module rom_ctrl
   output rom_ctrl_pkg::keymgr_data_t keymgr_data_o,
   input  kmac_pkg::app_rsp_t         kmac_data_i,
   output kmac_pkg::app_req_t         kmac_data_o
+  output logic secure_boot
 );
 
   import rom_ctrl_pkg::*;
@@ -87,7 +88,7 @@ module rom_ctrl
   logic                     kmac_done;
   logic [255:0]             kmac_digest;
   logic                     kmac_err;
-
+  logic                     secure_boot_init;
   if (!SecDisableScrambling) begin : gen_kmac_scramble_enabled
     // The usual situation, with scrambling enabled. Collect up output signals for kmac and split up
     // the input struct into separate signals.
@@ -218,6 +219,14 @@ module rom_ctrl
     .rerror_i     (2'b00)
   );
 
+  // Snoop to get the secure boot init signal Boris.
+  assign secure_boot_init = ( bus_rom_rom_index == 0 && bus_rom_req == 1 )
+  boot_identifier #(
+    .rst_ni(rst_ni)
+    .clk_i(clk_i)
+    .secure_boot_init_i(secure_boot_init)
+    .secure_boot_o(secure_boot)
+  );
   // Snoop on the "upstream" TL transaction to infer the address to pass to the PRINCE cipher.
   assign bus_rom_prince_index = (tl_rom_h2d_upstream.a_valid ?
                                  tl_rom_h2d_upstream.a_address[2 +: RomIndexWidth] :
