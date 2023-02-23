@@ -484,6 +484,191 @@ module rv_core_ibex
     .alert_major_bus_o      (alert_major_bus),
     .core_sleep_o           (core_sleep)
   );
+  core_outputs_t shadow_outputs;
+  // instantiation of shadow core
+  // Different register files
+  // Instructions/data will come not directly from memory but from two filflops to create a skew between cores.
+  // Output of main core will be connected to memory, but also to a chain of two flipflops (only when compare is enabled) that are connected to output comparator.
+  ibex_top #(
+    .PMPEnable                ( PMPEnable                ),
+    .PMPGranularity           ( PMPGranularity           ),
+    .PMPNumRegions            ( PMPNumRegions            ),
+    .MHPMCounterNum           ( MHPMCounterNum           ),
+    .MHPMCounterWidth         ( MHPMCounterWidth         ),
+    .RV32E                    ( RV32E                    ),
+    .RV32M                    ( RV32M                    ),
+    .RV32B                    ( RV32B                    ),
+    .RegFile                  ( RegFile                  ),
+    .BranchTargetALU          ( BranchTargetALU          ),
+    .WritebackStage           ( WritebackStage           ),
+    .ICache                   ( ICache                   ),
+    // Our automatic SEC_CM label check doesn't look at vendored code so the SEC_CM labels need
+    // to be mentioned here. The real locations can be found by grepping the vendored code.
+    // TODO(#10071): this should be fixed.
+    // SEC_CM: ICACHE.MEM.INTEGRITY
+    .ICacheECC                ( ICacheECC                ),
+    // SEC_CM: ICACHE.MEM.SCRAMBLE, SCRAMBLE.KEY.SIDELOAD
+    .ICacheScramble           ( ICacheScramble           ),
+    .BranchPredictor          ( BranchPredictor          ),
+    .DbgTriggerEn             ( DbgTriggerEn             ),
+    .DbgHwBreakNum            ( DbgHwBreakNum            ),
+    // SEC_CM: LOGIC.SHADOW
+    // SEC_CM: PC.CTRL_FLOW.CONSISTENCY, CTRL_FLOW.UNPREDICTABLE, CORE.DATA_REG_SW.SCA
+    // SEC_CM: EXCEPTION.CTRL_FLOW.GLOBAL_ESC, EXCEPTION.CTRL_FLOW.LOCAL_ESC
+    // SEC_CM: DATA_REG_SW.INTEGRITY, DATA_REG_SW.GLITCH_DETECT
+    .SecureIbex               ( SecureIbex               ),
+    .RndCnstLfsrSeed          ( RndCnstLfsrSeed          ),
+    .RndCnstLfsrPerm          ( RndCnstLfsrPerm          ),
+    .RndCnstIbexKey           ( RndCnstIbexKeyDefault    ),
+    .RndCnstIbexNonce         ( RndCnstIbexNonceDefault  ),
+    .DmHaltAddr               ( DmHaltAddr               ),
+    .DmExceptionAddr          ( DmExceptionAddr          )
+  ) u_core (
+    .clk_i              (inputs_shadow_s2.ibex_top_clk_i),
+    .rst_ni,
+
+
+    .test_en_i          (prim_mubi_pkg::mubi4_test_true_strict(scanmode_i_shadow)),
+    .scan_rst_ni,
+
+    .ram_cfg_i,
+
+    .hart_id_i,
+    .boot_addr_i,
+
+    .instr_req_o        ( shadow_outputs.instr_req        ),
+    .instr_gnt_i        ( inputs_shadow_s2.instr_gnt),
+    .instr_rvalid_i     ( inputs_shadow_s2.instr_rvalid),
+    .instr_addr_o       ( shadow_outputs.instr_addr     ),
+    .instr_rdata_i      ( inputs_shadow_s2.instr_rdata      ),
+    .instr_rdata_intg_i ( inputs_shadow_s2.instr_rdata_intg),
+    .instr_err_i        ( inputs_shadow_s2.instr_err        ),
+
+    .data_req_o         ( shadow_outputs.data_req         ),
+    .data_gnt_i         ( inputs_shadow_s2.data_gnt ),
+    .data_rvalid_i      ( inputs_shadow_s2.data_rvalid      ),
+    .data_we_o          ( shadow_outputs.data_we          ),
+    .data_be_o          ( shadow_outputs.data_be          ),
+    .data_addr_o        ( shadow_outputs.data_addr       ),
+    .data_wdata_o       ( shadow_outputs.data_wdata       ),
+    .data_wdata_intg_o  ( shadow_outputs.data_wdata_intg  ),
+    .data_rdata_i       ( inputs_shadow_s2.data_rdata ),
+    .data_rdata_intg_i  ( inputs_shadow_s2.data_rdata_intg ),
+    .data_err_i         ( inputs_shadow_s2.data_err         ),
+
+    .irq_software_i     ( inputs_shadow_s2.irq_software   ),
+    .irq_timer_i        ( inputs_shadow_s2.irq_timer      ),
+    .irq_external_i     ( inputs_shadow_s2.irq_external    ),
+    .irq_fast_i         ( '0               ),
+    .irq_nm_i           ( inputs_shadow_s2.irq_nm          ),
+
+    .debug_req_i,
+    .crash_dump_o       ( shadow_outputs.crash_dump       ),
+
+    // icache scramble interface
+    .scramble_key_valid_i (inputs_shadow_s2.key_ack),
+    .scramble_key_i       (inputs_shadow_s2.key),
+    .scramble_nonce_i     (inputs_shadow_s2.nonce),
+    .scramble_req_o       (shadow_outputs.key_req),
+
+    // double fault
+    .double_fault_seen_o  (shadow_outputs.double_fault),
+
+`ifdef RVFI
+    .rvfi_valid,
+    .rvfi_order,
+    .rvfi_insn,
+    .rvfi_trap,
+    .rvfi_halt,
+    .rvfi_intr,
+    .rvfi_mode,
+    .rvfi_ixl,
+    .rvfi_rs1_addr,
+    .rvfi_rs2_addr,
+    .rvfi_rs3_addr,
+    .rvfi_rs1_rdata,
+    .rvfi_rs2_rdata,
+    .rvfi_rs3_rdata,
+    .rvfi_rd_addr,
+    .rvfi_rd_wdata,
+    .rvfi_pc_rdata,
+    .rvfi_pc_wdata,
+    .rvfi_mem_addr,
+    .rvfi_mem_rmask,
+    .rvfi_mem_wmask,
+    .rvfi_mem_rdata,
+    .rvfi_mem_wdata,
+`endif
+    // SEC_CM: FETCH.CTRL.LC_GATED
+    .fetch_enable_i         (inputs_shadow_s2.fetch_enable),
+    .alert_minor_o          (shadow_outputs.alert_minor),
+    .alert_major_internal_o (shadow_outputs.alert_major_internal),
+    .alert_major_bus_o      (shadow_outputs.alert_major_bus),
+    .core_sleep_o           (shadow_outputs.core_sleep)
+  );
+  
+  // Creation of skewed inputs for shadow core
+  core_inputs_t inputs, inputs_shadow_s1, inputs_shadow_s2;
+
+  assign inputs.ibex_top_clk_i = ibex_top_clk_i;
+  assign inputs.scanmode_i = scanmode_i;
+  assign inputs.instr_gnt = instr_gnt;
+  assign inputs.instr_rvalid = instr_rvalid;
+  assign inputs.instr_rdata = instr_rdata;
+  assign inputs.instr_rdata_intg = instr_rdata_intg;
+  assign inputs.instr_err = instr_err;
+  assign inputs.data_gnt = data_gnt;
+  assign inputs.data_rvalid = data_rvalid;
+  assign inputs.data_rdata = data_rdata;
+  assign inputs.data_rdata_intg = data_rdata_intg;
+  assign inputs.data_err = data_err;
+  assign inputs.irq_software = irq_software;
+  assign inputs.irq_timer = irq_timer;
+  assign inputs.irq_external = irq_external;
+  assign inputs.irq_nm = irq_nm;
+  assign inputs.key_ack = key_ack;
+  assign inputs.nonce = nonce;
+  assign inputs.fetch_enable = fetch_enable;
+
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if(!rst_ni) begin
+      inputs_shadow_s1 <= 0;
+      inputs_shadow_s2 <= 0;
+    end else begin
+      inputs_shadow_s1 <= inputs;
+      inputs_shadow_s2 <= inputs_shadow_s1;
+    end
+  end
+  // Creation of skewed outputs from main core
+  core_outputs_t outputs_main, outputs_main_s1, outputs_main_s2;
+
+  assign outputs_main.instr_req = instr_req;
+  assign outputs_main.instr_addr = instr_addr;
+  assign outputs_main.data_req = data_req;
+  assign outputs_main.data_we = data_we;
+  assign outputs_main.data_be = data_be;
+  assign outputs_main.data_addr = data_addr;
+  assign outputs_main.data_wdata = data_wdata;
+  assign outputs_main.data_wdata_intg = data_wdata_intg;
+  assign outputs_main.crash_dump = crash_dump;
+  assign outputs_main.key_req = key_req;
+  assign outputs_main.double_fault = double_fault;
+  assign outputs_main.alert_minor = alert_minor;
+  assign outputs_main.alert_major_internal = alert_major_internal;
+  assign outputs_main.alert_major_bus = alert_major_bus;
+  assign outputs_main.core_sleep = core_sleep;
+
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if(!rst_ni) begin
+      outputs_main_s1 <= 0;
+      outputs_main_s2 <= 0;
+    end else begin
+      outputs_main_s1 <= outputs_main;
+      outputs_main_s2 <= outputs_main_s1;
+    end
+  end
+  // Output comparator 
+  assign outputs_mismatch = compare_enable_comparator & (shadow_outputs != outputs_main_s2);
 
   logic core_sleep_q;
   always_ff @(posedge clk_i or negedge rst_ni) begin
