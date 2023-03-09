@@ -40,7 +40,10 @@ module ibex_register_file_ff #(
   input  logic                 we_a_i,
 
   // This indicates whether spurious WE are detected.
-  output logic                 err_o
+  output logic                 err_o,
+
+  //for roll backer
+  input logic comperator_mismatch_i
 );
 
   localparam int unsigned ADDR_WIDTH = RV32E ? 4 : 5;
@@ -98,8 +101,64 @@ module ibex_register_file_ff #(
       end
     end
 
-    assign rf_reg[i] = rf_reg_q;
+    // Write to main registers write data or restore data from roll back.
+    always_comb begin
+      case(restore)
+        1'b1:  rf_reg[i] = rf_reg_backup[i]; // roll back
+        1'b0: rf_reg[i] = rf_reg_q; // write command
+      endcase
+    end
   end
+  //------------------------------------//
+  // Backup register file for roll backer //
+  //-----------------------------------//
+  logic [DataWidth-1:0] rf_reg_backup   [NUM_WORDS];
+  logic [DataWidth-1:0] rf_reg_backup_q   [NUM_WORDS];
+  logic [4:0] count;
+  logic backup;
+  logic restore;
+  // counter state machine
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      count <= 5'b0;
+    end
+    else begin
+      if (comperator_mismatch_i == 0) begin
+        count <= count + 1;
+      end
+      else begin // comperator_mismatch == 1
+        count <= 0;
+      end
+    end
+  end
+
+  // outputs of state machine backup/restore
+  always_comb begin
+    case(comperator_mismatch_i)
+      1'b1: begin
+        backup = 1'b0;
+        restore = 1'b1;
+      end
+      default: begin // comperator_mismatch == 0
+         backup = (count == 5'd31);
+         restore =1'b0;
+      end
+    endcase
+  end
+
+  // write to backup registers on backup command
+  for (genvar word = 1 ; word < NUM_WORDS; word ++) begin : backup_reg_loop
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        rf_reg_backup_q[word] <= WordZeroVal;
+      end else if (backup) begin
+        rf_reg_backup_q[word] <= rf_reg[word];
+      end
+    end
+
+    assign rf_reg_backup[word] = rf_reg_backup_q[word];
+  end
+  
 
   // With dummy instructions enabled, R0 behaves as a real register but will always return 0 for
   // real instructions.

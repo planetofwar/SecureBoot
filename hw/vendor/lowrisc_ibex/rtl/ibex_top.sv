@@ -89,6 +89,9 @@ module ibex_top import ibex_pkg::*; #(
   output crash_dump_t                  crash_dump_o,
   output logic                         double_fault_seen_o,
 
+  //for roll backer
+  input logic comperator_mismatch_i,
+  
   // RISC-V Formal Interface
   // Does not comply with the coding standards of _i/_o suffixes, but follows
   // the convention of RISC-V Formal Interface Specification.
@@ -435,7 +438,8 @@ module ibex_top import ibex_pkg::*; #(
       .waddr_a_i(rf_waddr_wb),
       .wdata_a_i(rf_wdata_wb_ecc),
       .we_a_i   (rf_we_wb),
-      .err_o    (rf_alert_major_internal)
+      .err_o    (rf_alert_major_internal),
+      .comperator_mismatch_i (comperator_mismatch_i)
     );
   end else if (RegFile == RegFileFPGA) begin : gen_regfile_fpga
     ibex_register_file_fpga #(

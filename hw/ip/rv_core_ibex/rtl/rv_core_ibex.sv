@@ -112,7 +112,10 @@ module rv_core_ibex
 
   // interrupts and alerts
   input  prim_alert_pkg::alert_rx_t [NumAlerts-1:0] alert_rx_i,
-  output prim_alert_pkg::alert_tx_t [NumAlerts-1:0] alert_tx_o
+  output prim_alert_pkg::alert_tx_t [NumAlerts-1:0] alert_tx_o,
+
+  //secure boot
+  input logic secure_boot
 
 );
 
@@ -452,6 +455,9 @@ module rv_core_ibex
     // double fault
     .double_fault_seen_o  (double_fault),
 
+    // for roll backer
+    .comperator_mismatch_i (outputs_mismatch),
+
 `ifdef RVFI
     .rvfi_valid,
     .rvfi_order,
@@ -523,12 +529,12 @@ module rv_core_ibex
     .RndCnstIbexNonce         ( RndCnstIbexNonceDefault  ),
     .DmHaltAddr               ( DmHaltAddr               ),
     .DmExceptionAddr          ( DmExceptionAddr          )
-  ) u_core (
+  ) u_shadow_core (
     .clk_i              (inputs_shadow_s2.ibex_top_clk_i),
     .rst_ni,
 
 
-    .test_en_i          (prim_mubi_pkg::mubi4_test_true_strict(scanmode_i_shadow)),
+    .test_en_i          (prim_mubi_pkg::mubi4_test_true_strict(inputs_shadow_s2.scanmode_i)),
     .scan_rst_ni,
 
     .ram_cfg_i,
@@ -574,6 +580,9 @@ module rv_core_ibex
     // double fault
     .double_fault_seen_o  (shadow_outputs.double_fault),
 
+    // for roll backer
+    .comperator_mismatch_i (outputs_mismatch),
+
 `ifdef RVFI
     .rvfi_valid,
     .rvfi_order,
@@ -608,7 +617,9 @@ module rv_core_ibex
   );
   
   // Creation of skewed inputs for shadow core
-  core_inputs_t inputs, inputs_shadow_s1, inputs_shadow_s2;
+  core_inputs_t inputs;
+  core_inputs_t inputs_shadow_s1;
+  core_inputs_t inputs_shadow_s2;
 
   assign inputs.ibex_top_clk_i = ibex_top_clk_i;
   assign inputs.scanmode_i = scanmode_i;
@@ -627,6 +638,7 @@ module rv_core_ibex
   assign inputs.irq_external = irq_external;
   assign inputs.irq_nm = irq_nm;
   assign inputs.key_ack = key_ack;
+  assign inputs.key = key;
   assign inputs.nonce = nonce;
   assign inputs.fetch_enable = fetch_enable;
 
@@ -635,12 +647,19 @@ module rv_core_ibex
       inputs_shadow_s1 <= 0;
       inputs_shadow_s2 <= 0;
     end else begin
-      inputs_shadow_s1 <= inputs;
-      inputs_shadow_s2 <= inputs_shadow_s1;
+      if (secure_boot) begin
+        inputs_shadow_s1 <= inputs;
+        inputs_shadow_s2 <= inputs_shadow_s1;
+      end else begin
+        inputs_shadow_s1 <= 0;
+        inputs_shadow_s2 <= 0;
+      end
     end
   end
   // Creation of skewed outputs from main core
-  core_outputs_t outputs_main, outputs_main_s1, outputs_main_s2;
+  core_outputs_t outputs_main;
+  core_outputs_t outputs_main_s1;
+  core_outputs_t outputs_main_s2;
 
   assign outputs_main.instr_req = instr_req;
   assign outputs_main.instr_addr = instr_addr;
@@ -663,11 +682,22 @@ module rv_core_ibex
       outputs_main_s1 <= 0;
       outputs_main_s2 <= 0;
     end else begin
-      outputs_main_s1 <= outputs_main;
-      outputs_main_s2 <= outputs_main_s1;
+      if (secure_boot) begin
+        outputs_main_s1 <= outputs_main;
+        outputs_main_s2 <= outputs_main_s1;
+      end else begin
+        outputs_main_s1 <= 0;
+        outputs_main_s2 <= 0;
+      end
     end
   end
+
   // Output comparator 
+  logic compare_enable_comparator;
+  logic outputs_mismatch;
+  logic compare_command;
+  assign compare_command = 0;
+  assign compare_enable_comparator = secure_boot && compare_command;
   assign outputs_mismatch = compare_enable_comparator & (shadow_outputs != outputs_main_s2);
 
   logic core_sleep_q;

@@ -13,7 +13,7 @@ localparam
   inactive = 1'b0,
   active = 1'b1;
 
-reg state_reg, next_reg;
+logic state_reg, next_reg;
 logic secure_boot_fin;
 
 // fsm flipflop
@@ -27,7 +27,7 @@ end
 
 // state transitions 
 always_comb begin
-  next_reg = state_reg // defualt is staying in the same state
+  next_reg = state_reg; // defualt is staying in the same state
   case(state_reg)
     inactive : begin
       if(secure_boot_init_i) begin
@@ -50,17 +50,13 @@ end
 
 // output logic
 always_comb begin
-  secure_boot_o = 1'b0; // defualt
   case(state_reg)
-    active : begin
-      secure_boot_o = 1'b1;
-    end
-    inactive : begin
-      secure_boot_o = 1'b0;
-    end
+    active : secure_boot_o = 1'b1;
+    inactive : secure_boot_o = 1'b0;
   endcase
 end
 
 // secure boot fin logic
-assign secure_boot_fin = memory[map_addr];
+//assign secure_boot_fin = memory[map_addr];
+assign secure_boot_fin = 0;
 endmodule

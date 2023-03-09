@@ -30,6 +30,7 @@ filesets:
       - rtl/rom_ctrl_fsm.sv
       - rtl/rom_ctrl_mux.sv
       - rtl/rom_ctrl_scrambled_rom.sv
+      - rtl/boot_identifier.sv	  
     file_type: systemVerilogSource
 
   files_verilator_waiver:

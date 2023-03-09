@@ -6,7 +6,7 @@
 //
 
 package rv_core_ibex_pkg;
-
+  import prim_mubi_pkg::mubi4_t; 
   typedef struct packed {
     logic en;
     logic [31:0] matching_region;
@@ -48,7 +48,7 @@ package rv_core_ibex_pkg;
     logic [6:0]  instr_rdata_intg;
     logic instr_err;
     logic data_gnt;
-    logic data_rvalid
+    logic data_rvalid;
     logic [31:0] data_rdata;
     logic [6:0]  data_rdata_intg;
     logic data_err;
@@ -57,6 +57,7 @@ package rv_core_ibex_pkg;
     logic irq_external;
     logic irq_nm;
     logic key_ack;
+    logic [ibex_pkg::SCRAMBLE_KEY_W-1:0] key;
     logic [ibex_pkg::SCRAMBLE_NONCE_W-1:0] nonce;
     lc_ctrl_pkg::lc_tx_t fetch_enable;   
   } core_inputs_t;
