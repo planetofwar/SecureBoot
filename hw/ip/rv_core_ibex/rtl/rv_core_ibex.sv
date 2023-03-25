@@ -696,7 +696,6 @@ module rv_core_ibex
   logic compare_enable_comparator;
   logic outputs_mismatch;
   logic compare_command;
-  assign compare_command = 0;
   assign compare_enable_comparator = secure_boot && compare_command;
   assign outputs_mismatch = compare_enable_comparator & (shadow_outputs != outputs_main_s2);
 
@@ -905,7 +904,8 @@ module rv_core_ibex
     .intg_err_o (intg_err),
     .tl_win_o(tl_win_h2d),
     .tl_win_i(tl_win_d2h),
-    .devmode_i  (1'b1) // connect to real devmode signal in the future
+    .devmode_i  (1'b1), // connect to real devmode signal in the future
+    .compare_command(compare_command)
   );
 
   ///////////////////////
