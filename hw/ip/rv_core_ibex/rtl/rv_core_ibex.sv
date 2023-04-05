@@ -696,8 +696,11 @@ module rv_core_ibex
   logic compare_enable_comparator;
   logic outputs_mismatch;
   logic compare_command;
+  // Check the checker logic for shaow comparator
+  logic shadow_ctc;
   assign compare_enable_comparator = secure_boot && compare_command;
-  assign outputs_mismatch = compare_enable_comparator & (shadow_outputs != outputs_main_s2);
+  assign outputs_mismatch = (compare_enable_comparator & (shadow_outputs != outputs_main_s2)) | shadow_ctc;
+
 
   logic core_sleep_q;
   always_ff @(posedge clk_i or negedge rst_ni) begin
@@ -905,7 +908,8 @@ module rv_core_ibex
     .tl_win_o(tl_win_h2d),
     .tl_win_i(tl_win_d2h),
     .devmode_i  (1'b1), // connect to real devmode signal in the future
-    .compare_command(compare_command)
+    .compare_command(compare_command),
+    .shadow_ctc(shadow_ctc)
   );
 
   ///////////////////////
