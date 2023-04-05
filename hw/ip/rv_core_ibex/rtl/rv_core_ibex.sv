@@ -692,14 +692,51 @@ module rv_core_ibex
     end
   end
 
+  // Check the checker logic for shaow comparator
+  logic shadow_ctc;
+  logic activate_ctc;
+  // State machine to ensure that ctc is up only for one cycle.
+  localparam [1:0] // 3 states
+    ctc_ready = 2'b00,
+    ctc_active = 2'b01,
+    ctc_recharge = 2'b10;
+  logic [1:0] ctc_state, ctc_next;
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if(!rst_ni)
+      ctc_state <= ctc_ready;
+    else
+      ctc_state <= ctc_next;
+  end
+  always_comb begin
+    ctc_next = ctc_state;
+    case(ctc_state)
+      ctc_ready: begin
+        activate_ctc = '0;
+        if(shadow_ctc)
+          ctc_next = ctc_active;
+        else
+          ctc_next = ctc_ready;
+      end
+      ctc_active: begin
+        activate_ctc = '1;
+        ctc_next = ctc_recharge;
+      end
+      ctc_recharge: begin
+        activate_ctc = '0;
+        if(shadow_ctc)
+          ctc_next = ctc_recharge;
+        else
+          ctc_next = ctc_ready;
+      end
+    endcase
+  end
   // Output comparator 
   logic compare_enable_comparator;
   logic outputs_mismatch;
   logic compare_command;
-  // Check the checker logic for shaow comparator
-  logic shadow_ctc;
+
   assign compare_enable_comparator = secure_boot && compare_command;
-  assign outputs_mismatch = (compare_enable_comparator & (shadow_outputs != outputs_main_s2)) | shadow_ctc;
+  assign outputs_mismatch = (compare_enable_comparator & (shadow_outputs != outputs_main_s2)) | activate_ctc;
 
 
   logic core_sleep_q;
