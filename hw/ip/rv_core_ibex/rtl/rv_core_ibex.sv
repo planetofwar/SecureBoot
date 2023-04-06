@@ -113,10 +113,6 @@ module rv_core_ibex
   // interrupts and alerts
   input  prim_alert_pkg::alert_rx_t [NumAlerts-1:0] alert_rx_i,
   output prim_alert_pkg::alert_tx_t [NumAlerts-1:0] alert_tx_o,
-
-  //secure boot
-  input logic secure_boot
-
 );
 
   import top_pkg::*;
@@ -491,6 +487,17 @@ module rv_core_ibex
     .core_sleep_o           (core_sleep)
   );
   core_outputs_t shadow_outputs;
+
+  // Snoop to get the secure boot init signal Boris.
+  logic  secure_boot_init;
+  logic secure_boot;
+  assign secure_boot_init = ( instr_addr >= 32'h00000000 && instr_addr <= 32'h000007FF );
+  boot_identifier u_identifier(
+    .rst_ni(rst_ni),
+    .clk_i(clk_i),
+    .secure_boot_init_i(secure_boot_init),
+    .secure_boot_o(secure_boot)
+  );
   // instantiation of shadow core
   // Different register files
   // Instructions/data will come not directly from memory but from two filflops to create a skew between cores.

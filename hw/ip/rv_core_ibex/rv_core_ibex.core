@@ -28,6 +28,7 @@ filesets:
       - rtl/rv_core_ibex_cfg_reg_top.sv
       - rtl/rv_core_ibex.sv
       - rtl/rv_core_addr_trans.sv
+      - rtl/boot_identifier.sv
       - rtl/ibex_pmp_reset.svh: {is_include_file: true}
     file_type: systemVerilogSource
 
