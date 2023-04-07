@@ -24,12 +24,7 @@ module rv_core_ibex_cfg_reg_top (
   output logic intg_err_o,
 
   // Config
-  input devmode_i, // If 1, explicit error return for unmapped register access
-
-  // Compare command
-  output compare_command,
-  // Check the checker hardware
-  output shadow_ctc
+  input devmode_i // If 1, explicit error return for unmapped register access
 );
 
   import rv_core_ibex_reg_pkg::* ;
@@ -183,8 +178,6 @@ module rv_core_ibex_cfg_reg_top (
   logic alert_test_recov_sw_err_wd;
   logic alert_test_fatal_hw_err_wd;
   logic alert_test_recov_hw_err_wd;
-  logic alert_test_compare_command_wd;
-  logic alert_test_shadow_ctc_wd;
   logic sw_recov_err_we;
   logic [3:0] sw_recov_err_qs;
   logic [3:0] sw_recov_err_wd;
@@ -1229,10 +1222,6 @@ module rv_core_ibex_cfg_reg_top (
   assign alert_test_compare_command_wd = reg_wdata[4];
 
   assign alert_test_shadow_ctc_wd = reg_wdata[5];
-
-  assign compare_command = alert_test_compare_command_wd & alert_test_we;
-
-  assign shadow_ctc = alert_test_shadow_ctc_wd & alert_test_we;
   
   assign sw_recov_err_we = addr_hit[1] & reg_we & !reg_error;
 

@@ -155,7 +155,9 @@ module ibex_core import ibex_pkg::*; #(
   output logic                         alert_minor_o,
   output logic                         alert_major_internal_o,
   output logic                         alert_major_bus_o,
-  output ibex_mubi_t                   core_busy_o
+  output ibex_mubi_t                   core_busy_o,
+  output logic                         compare_command,
+  output logic                         ctc_command
 );
 
   localparam int unsigned PMPNumChan      = 3;
@@ -1001,7 +1003,6 @@ module ibex_core import ibex_pkg::*; #(
 
   assign csr_wdata  = alu_operand_a_ex;
   assign csr_addr   = csr_num_e'(csr_access ? alu_operand_b_ex[11:0] : 12'b0);
-
   ibex_cs_registers #(
     .DbgTriggerEn     (DbgTriggerEn),
     .DbgHwBreakNum    (DbgHwBreakNum),
@@ -1106,7 +1107,9 @@ module ibex_core import ibex_pkg::*; #(
     .mem_store_i                (perf_store),
     .dside_wait_i               (perf_dside_wait),
     .mul_wait_i                 (perf_mul_wait),
-    .div_wait_i                 (perf_div_wait)
+    .div_wait_i                 (perf_div_wait),
+    .csr_mstatus_comp_o         (compare_command),
+    .csr_mstatus_ctc_o          (ctc_command)
   );
 
   // These assertions are in top-level as instr_valid_id required as the enable term

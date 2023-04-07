@@ -484,7 +484,9 @@ module rv_core_ibex
     .alert_minor_o          (alert_minor),
     .alert_major_internal_o (alert_major_internal),
     .alert_major_bus_o      (alert_major_bus),
-    .core_sleep_o           (core_sleep)
+    .core_sleep_o           (core_sleep),
+    .compare_command_o      (compare_command),
+    .ctc_command_o          (ctc_command)
   );
   core_outputs_t shadow_outputs;
 
@@ -620,7 +622,7 @@ module rv_core_ibex
     .alert_minor_o          (shadow_outputs.alert_minor),
     .alert_major_internal_o (shadow_outputs.alert_major_internal),
     .alert_major_bus_o      (shadow_outputs.alert_major_bus),
-    .core_sleep_o           (shadow_outputs.core_sleep)
+    .core_sleep_o           (shadow_outputs.core_sleep),
   );
   
   // Creation of skewed inputs for shadow core
@@ -951,9 +953,7 @@ module rv_core_ibex
     .intg_err_o (intg_err),
     .tl_win_o(tl_win_h2d),
     .tl_win_i(tl_win_d2h),
-    .devmode_i  (1'b1), // connect to real devmode signal in the future
-    .compare_command(compare_command),
-    .shadow_ctc(shadow_ctc)
+    .devmode_i  (1'b1) // connect to real devmode signal in the future
   );
 
   ///////////////////////

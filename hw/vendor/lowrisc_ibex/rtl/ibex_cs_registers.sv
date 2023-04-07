@@ -118,7 +118,9 @@ module ibex_cs_registers #(
   input  logic                 mem_store_i,                 // store to memory in this cycle
   input  logic                 dside_wait_i,                // core waiting for the dside
   input  logic                 mul_wait_i,                  // core waiting for multiply
-  input  logic                 div_wait_i                   // core waiting for divide
+  input  logic                 div_wait_i,                  // core waiting for divide
+  output logic csr_mstatus_comp_o, //compare command
+  output logic csr_mstatus_ctc_o   //ctc command
 );
 
   import ibex_pkg::*;
@@ -161,6 +163,8 @@ module ibex_cs_registers #(
 
   typedef struct packed {
     logic      mie;
+    logic      comp;
+    logic      ctc;
     logic      mpie;
     priv_lvl_e mpp;
     logic      mprv;
@@ -346,6 +350,8 @@ module ibex_cs_registers #(
         csr_rdata_int[CSR_MSTATUS_MPP_BIT_HIGH:CSR_MSTATUS_MPP_BIT_LOW] = mstatus_q.mpp;
         csr_rdata_int[CSR_MSTATUS_MPRV_BIT]                             = mstatus_q.mprv;
         csr_rdata_int[CSR_MSTATUS_TW_BIT]                               = mstatus_q.tw;
+        csr_rdata_int[CSR_MSTATUS_COMPARE_COMMAND]                      = mstatus_q.comp;
+        csr_rdata_int[CSR_MSTATUS_SHADOW_CTC]                           = mstatus_q.ctc;
       end
 
       // mstatush: All zeros for Ibex (fixed little endian and all other bits reserved)
@@ -607,6 +613,8 @@ module ibex_cs_registers #(
           mstatus_en = 1'b1;
           mstatus_d    = '{
               mie:  csr_wdata_int[CSR_MSTATUS_MIE_BIT],
+              comp: csr_wdata_int[CSR_MSTATUS_COMPARE_COMMAND],
+              ctc: csr_wdata_int[CSR_MSTATUS_SHADOW_CTC],
               mpie: csr_wdata_int[CSR_MSTATUS_MPIE_BIT],
               mpp:  priv_lvl_e'(csr_wdata_int[CSR_MSTATUS_MPP_BIT_HIGH:CSR_MSTATUS_MPP_BIT_LOW]),
               mprv: csr_wdata_int[CSR_MSTATUS_MPRV_BIT],
@@ -842,6 +850,8 @@ module ibex_cs_registers #(
 
   assign csr_mstatus_mie_o   = mstatus_q.mie;
   assign csr_mstatus_tw_o    = mstatus_q.tw;
+  assign csr_mstatus_ctc_o = mstatus_q.ctc;
+  assign csr_mstatus_comp_o = mstatus_q.comp;
   assign debug_single_step_o = dcsr_q.step;
   assign debug_ebreakm_o     = dcsr_q.ebreakm;
   assign debug_ebreaku_o     = dcsr_q.ebreaku;
@@ -857,6 +867,8 @@ module ibex_cs_registers #(
 
   // MSTATUS
   localparam status_t MSTATUS_RST_VAL = '{mie:  1'b0,
+                                          comp: 1'b0,
+                                          ctc: 1'b0,
                                           mpie: 1'b1,
                                           mpp:  PRIV_LVL_U,
                                           mprv: 1'b0,

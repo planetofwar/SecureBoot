@@ -139,7 +139,9 @@ module ibex_top import ibex_pkg::*; #(
   output logic                         core_sleep_o,
 
   // DFT bypass controls
-  input logic                          scan_rst_ni
+  input logic                          scan_rst_ni,
+  output logic compare_command_o,
+  output logic ctc_command_o
 );
 
   localparam bit          Lockstep          = SecureIbex;
@@ -407,7 +409,9 @@ module ibex_top import ibex_pkg::*; #(
     .alert_minor_o         (core_alert_minor),
     .alert_major_internal_o(core_alert_major_internal),
     .alert_major_bus_o     (core_alert_major_bus),
-    .core_busy_o           (core_busy_d)
+    .core_busy_o           (core_busy_d),
+    .compare_command       (compare_command_o),
+    .ctc_command           (ctc_command_o)
   );
 
   /////////////////////////////////
