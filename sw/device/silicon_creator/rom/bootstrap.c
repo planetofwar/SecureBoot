@@ -15,16 +15,17 @@
 #include "sw/device/silicon_creator/lib/drivers/rstmgr.h"
 #include "sw/device/silicon_creator/lib/drivers/spi_device.h"
 #include "sw/device/silicon_creator/lib/error.h"
-
 #include "flash_ctrl_regs.h"
 #include "gpio_regs.h"
 #include "hw/top_earlgrey/sw/autogen/top_earlgrey.h"
 #include "otp_ctrl_regs.h"
+// #include "sw/device/lib/runtime/log.h" // Sergey
+#include "sw/device/lib/runtime/print.h"// Sergey
 
 enum {
   /*
    * Maximum flash address, exclusive.
-   */
+   */ 
   kMaxAddress =
       FLASH_CTRL_PARAM_BYTES_PER_BANK * FLASH_CTRL_PARAM_REG_NUM_BANKS,
 };
@@ -70,6 +71,7 @@ typedef enum bootstrap_state {
  * @return Result of the operation.
  */
 static rom_error_t bootstrap_chip_erase(void) {
+  base_printf("####SERGEY IN bootstrap_chip_erase#####\n"); 
   flash_ctrl_bank_erase_perms_set(kHardenedBoolTrue);
   rom_error_t err_0 = flash_ctrl_data_erase(0, kFlashCtrlEraseTypeBank);
   rom_error_t err_1 = flash_ctrl_data_erase(FLASH_CTRL_PARAM_BYTES_PER_BANK,
@@ -99,7 +101,7 @@ static rom_error_t bootstrap_sector_erase(uint32_t addr) {
      */
     kPageAddrMask = ~UINT32_C(4096) + 1,
   };
-
+  base_printf("####SERGEY IN bootstrap_sector_erase#####\n"); 
   if (addr >= kMaxAddress) {
     return kErrorBootstrapEraseAddress;
   }
@@ -142,6 +144,7 @@ static rom_error_t bootstrap_page_program(uint32_t addr, size_t byte_count,
                                           uint8_t *data) {
   static_assert(__builtin_popcount(FLASH_CTRL_PARAM_BYTES_PER_WORD) == 1,
                 "Bytes per flash word must be a power of two.");
+  base_printf("####SERGEY IN bootstrap_page_program#####\n");   			
   enum {
     /**
      * Mask for checking that `addr` is flash word aligned.
@@ -159,7 +162,7 @@ static rom_error_t bootstrap_page_program(uint32_t addr, size_t byte_count,
      */
     kFlashProgPageMask = kFlashProgPageSize - 1,
   };
-
+    
   if (addr & kFlashWordMask || addr >= kMaxAddress) {
     return kErrorBootstrapProgramAddress;
   }
@@ -222,6 +225,7 @@ static rom_error_t bootstrap_page_program(uint32_t addr, size_t byte_count,
  * @return Result of the operation.
  */
 static rom_error_t bootstrap_handle_erase(bootstrap_state_t *state) {
+  base_printf("####SERGEY IN bootstrap_handle_erase#####\n");  
   HARDENED_CHECK_EQ(*state, kBootstrapStateErase);
 
   spi_device_cmd_t cmd;
@@ -260,6 +264,7 @@ static rom_error_t bootstrap_handle_erase(bootstrap_state_t *state) {
  * @return Result of the operation.
  */
 static rom_error_t bootstrap_handle_erase_verify(bootstrap_state_t *state) {
+  base_printf("####SERGEY IN bootstrap_handle_erase_verify#####\n"); 
   HARDENED_CHECK_EQ(*state, kBootstrapStateEraseVerify);
 
   rom_error_t err_0 = flash_ctrl_data_erase_verify(0, kFlashCtrlEraseTypeBank);
@@ -280,6 +285,7 @@ static rom_error_t bootstrap_handle_erase_verify(bootstrap_state_t *state) {
  * @return Result of the operation.
  */
 static rom_error_t bootstrap_handle_program(bootstrap_state_t *state) {
+  base_printf("####SERGEY IN bootstrap_handle_program#####\n"); 
   static_assert(alignof(spi_device_cmd_t) >= sizeof(uint32_t) &&
                     offsetof(spi_device_cmd_t, payload) >= sizeof(uint32_t),
                 "Payload must be word aligned.");
@@ -346,6 +352,7 @@ hardened_bool_t bootstrap_requested(void) {
   res ^=
       abs_mmio_read32(TOP_EARLGREY_GPIO_BASE_ADDR + GPIO_DATA_IN_REG_OFFSET) &
       SW_STRAP_MASK;
+  base_printf("####SERGEY IN bootstrap_requested#####\n");  
   if (launder32(res) != kHardenedBoolTrue) {
     return kHardenedBoolFalse;
   }

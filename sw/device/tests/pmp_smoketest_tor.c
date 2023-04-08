@@ -10,6 +10,9 @@
 #include "sw/device/lib/testing/test_framework/ottf_main.h"
 #include "sw/device/silicon_creator/lib/epmp_state.h"
 
+#include "sw/device/lib/base/csr_registers.h" //Sergey 
+#include "sw/device/lib/runtime/log.h" //Sergey
+#include "sw/device/lib/runtime/print.h"// Sergey
 /**
  * PMP regions that are used for load/store and execution permission violation
  * tests.
@@ -67,10 +70,19 @@ static void pmp_configure_load_tor(void) {
 }
 
 OTTF_DEFINE_TEST_CONFIG();
-
+uint32_t test_var; // Sergey
 bool test_main(void) {
   // Unlock the entire address space for RWX so that we can run this test with
   // both rom and test_rom.
+  
+  // Sergey Part
+  LOG_INFO("#### Writing to register ####\n");
+  CSR_WRITE(CSR_MSTATUS_COMPARE_COMMAND, 1);
+  LOG_INFO("#### Reading from register ####\n");
+  CSR_READ(CSR_MSTATUS_COMPARE_COMMAND, &test_var);
+  LOG_INFO("##################### RESULT = %x ########################", test_var);
+  // Sergey Part
+  
   CSR_SET_BITS(CSR_REG_PMPADDR15, 0x7fffffff);
   CSR_WRITE(CSR_REG_PMPCFG3, (kEpmpModeNapot | kEpmpPermLockedReadWriteExecute)
                                  << 24);
