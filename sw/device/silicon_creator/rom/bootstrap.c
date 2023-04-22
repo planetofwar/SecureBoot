@@ -21,6 +21,8 @@
 #include "otp_ctrl_regs.h"
 // #include "sw/device/lib/runtime/log.h" // Sergey
 #include "sw/device/lib/runtime/print.h"// Sergey
+#include "sw/device/lib/base/csr_registers.h" //Sergey 
+#include "sw/device/lib/base/csr.h"
 
 enum {
   /*
@@ -353,6 +355,23 @@ hardened_bool_t bootstrap_requested(void) {
       abs_mmio_read32(TOP_EARLGREY_GPIO_BASE_ADDR + GPIO_DATA_IN_REG_OFFSET) &
       SW_STRAP_MASK;
   base_printf("####SERGEY IN bootstrap_requested#####\n");  
+  // Sergey Part
+  uint32_t test_var; // Sergey
+  uint32_t existing_value;
+  uint32_t write_value;
+  base_printf("#### Reading existing ####\n");
+  CSR_READ(CSR_REG_MSTATUS, &existing_value);
+  base_printf("##################### RESULT existing = %x #####################\n", existing_value);
+  write_value = existing_value | 8 ; // existing_value | 000001000(binary) - compare command
+  base_printf("#### Writing to register = %x ####\n", write_value);
+  CSR_WRITE(CSR_REG_MSTATUS, write_value);
+  write_value = existing_value | 16 ; // existing_value | 0000010000(binary) - ctc command
+  CSR_WRITE(CSR_REG_MSTATUS, write_value);
+  base_printf("#### Writing to register = %x ####\n", write_value);
+  base_printf("#### Reading from register ####\n");
+  CSR_READ(CSR_REG_MSTATUS, &test_var);
+  base_printf("##################### RESULT = %x ########################\n", test_var);
+  // Sergey Part
   if (launder32(res) != kHardenedBoolTrue) {
     return kHardenedBoolFalse;
   }

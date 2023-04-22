@@ -71,15 +71,21 @@ static void pmp_configure_load_tor(void) {
 
 OTTF_DEFINE_TEST_CONFIG();
 uint32_t test_var; // Sergey
+uint32_t existing_value;
+uint32_t write_value;
 bool test_main(void) {
   // Unlock the entire address space for RWX so that we can run this test with
   // both rom and test_rom.
   
   // Sergey Part
-  LOG_INFO("#### Writing to register ####\n");
-  CSR_WRITE(CSR_MSTATUS_COMPARE_COMMAND, 1);
+  LOG_INFO("#### Reading existing ####\n");
+  CSR_READ(CSR_REG_MSTATUS, &existing_value);
+  LOG_INFO("##################### RESULT existing = %x ########################", existing_value);
+  write_value = existing_value | 24 ; // existing_value | 0000011000(binary)
+  LOG_INFO("#### Writing to register = %x ####\n", write_value);
+  CSR_WRITE(CSR_REG_MSTATUS, write_value);
   LOG_INFO("#### Reading from register ####\n");
-  CSR_READ(CSR_MSTATUS_COMPARE_COMMAND, &test_var);
+  CSR_READ(CSR_REG_MSTATUS, &test_var);
   LOG_INFO("##################### RESULT = %x ########################", test_var);
   // Sergey Part
   

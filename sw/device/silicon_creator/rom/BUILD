@@ -253,6 +253,7 @@ cc_library(
         "//sw/device/lib/base:bitfield",
         "//sw/device/lib/base:hardened",
 		"//sw/device/lib/runtime:print",
+		"//sw/device/lib/base:csr",
         "//sw/device/silicon_creator/lib:error",
         "//sw/device/silicon_creator/lib/base:chip",
         "//sw/device/silicon_creator/lib/drivers:flash_ctrl",
