@@ -114,7 +114,9 @@ def verilator_params(
         timeout = _BASE_PARAMS["timeout"],
         test_runner = _BASE_PARAMS["test_runner"],
         test_cmds = _BASE_PARAMS["test_cmds"] + [
+			"--verilator-args=--trace",
             "console",
+			"--timeout=3600sec",
             "--exit-success={exit_success}",
             "--exit-failure={exit_failure}",
         ],
