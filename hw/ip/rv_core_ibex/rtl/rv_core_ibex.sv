@@ -491,15 +491,8 @@ module rv_core_ibex
   core_outputs_t shadow_outputs;
 
   // Snoop to get the secure boot init signal Boris.
-  logic  secure_boot_init;
   logic secure_boot;
-  assign secure_boot_init = ( instr_addr >= 32'h00000000 && instr_addr <= 32'h000007FF );
-  boot_identifier u_identifier(
-    .rst_ni(rst_ni),
-    .clk_i(clk_i),
-    .secure_boot_init_i(secure_boot_init),
-    .secure_boot_o(secure_boot)
-  );
+  assign secure_boot = ( instr_addr >= 32'h00008000 && instr_addr <= 32'h0000AFFF );
   // instantiation of shadow core
   // Different register files
   // Instructions/data will come not directly from memory but from two filflops to create a skew between cores.
@@ -539,7 +532,7 @@ module rv_core_ibex
     .DmHaltAddr               ( DmHaltAddr               ),
     .DmExceptionAddr          ( DmExceptionAddr          )
   ) u_shadow_core (
-    .clk_i              (inputs_shadow_s2.ibex_top_clk_i),
+    .clk_i              (ibex_top_clk_i),
     .rst_ni,
 
 
@@ -630,7 +623,6 @@ module rv_core_ibex
   core_inputs_t inputs_shadow_s1;
   core_inputs_t inputs_shadow_s2;
 
-  assign inputs.ibex_top_clk_i = ibex_top_clk_i;
   assign inputs.scanmode_i = scanmode_i;
   assign inputs.instr_gnt = instr_gnt;
   assign inputs.instr_rvalid = instr_rvalid;
@@ -702,7 +694,6 @@ module rv_core_ibex
   end
 
   // Check the checker logic for shaow comparator
-  logic shadow_ctc;
   logic activate_ctc;
   // State machine to ensure that ctc is up only for one cycle.
   localparam [1:0] // 3 states
@@ -721,7 +712,7 @@ module rv_core_ibex
     case(ctc_state)
       ctc_ready: begin
         activate_ctc = '0;
-        if(shadow_ctc)
+        if(ctc_command)
           ctc_next = ctc_active;
         else
           ctc_next = ctc_ready;
@@ -732,7 +723,7 @@ module rv_core_ibex
       end
       ctc_recharge: begin
         activate_ctc = '0;
-        if(shadow_ctc)
+        if(ctc_command)
           ctc_next = ctc_recharge;
         else
           ctc_next = ctc_ready;
