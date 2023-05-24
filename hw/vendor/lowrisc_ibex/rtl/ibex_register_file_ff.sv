@@ -43,7 +43,9 @@ module ibex_register_file_ff #(
   output logic                 err_o,
 
   //for roll backer
-  input logic comperator_mismatch_i
+  input logic comperator_mismatch_i,
+  output logic backup_o,
+  output logic restore_o
 );
 
   localparam int unsigned ADDR_WIDTH = RV32E ? 4 : 5;
@@ -91,23 +93,20 @@ module ibex_register_file_ff #(
 
   // No flops for R0 as it's hard-wired to 0
   for (genvar i = 1; i < NUM_WORDS; i++) begin : g_rf_flops
-    logic [DataWidth-1:0] rf_reg_q;
+    logic [DataWidth-1:0] rf_reg_q [NUM_WORDS];
 
     always_ff @(posedge clk_i or negedge rst_ni) begin
       if (!rst_ni) begin
-        rf_reg_q <= WordZeroVal;
+        rf_reg_q[i] <= WordZeroVal;
+      end else if (restore_o) begin
+        rf_reg_q[i] <= rf_reg_backup [i];
       end else if (we_a_dec[i]) begin
-        rf_reg_q <= wdata_a_i;
+        rf_reg_q[i] <= wdata_a_i;
       end
     end
 
     // Write to main registers write data or restore data from roll back.
-    always_comb begin
-      case(restore)
-        1'b1:  rf_reg[i] = rf_reg_backup[i]; // roll back
-        1'b0: rf_reg[i] = rf_reg_q; // write command
-      endcase
-    end
+    assign rf_reg[i] = rf_reg_q[i];
   end
   //------------------------------------//
   // Backup register file for roll backer //
@@ -115,8 +114,7 @@ module ibex_register_file_ff #(
   logic [DataWidth-1:0] rf_reg_backup   [NUM_WORDS];
   logic [DataWidth-1:0] rf_reg_backup_q   [NUM_WORDS];
   logic [4:0] count;
-  logic backup;
-  logic restore;
+
   // counter state machine
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
@@ -136,12 +134,12 @@ module ibex_register_file_ff #(
   always_comb begin
     case(comperator_mismatch_i)
       1'b1: begin
-        backup = 1'b0;
-        restore = 1'b1;
+        backup_o = 1'b0;
+        restore_o = 1'b1;
       end
       default: begin // comperator_mismatch == 0
-         backup = (count == 5'd31);
-         restore =1'b0;
+         backup_o = (count == 5'd31);
+         restore_o =1'b0;
       end
     endcase
   end
@@ -151,7 +149,7 @@ module ibex_register_file_ff #(
     always_ff @(posedge clk_i or negedge rst_ni) begin
       if (!rst_ni) begin
         rf_reg_backup_q[word] <= WordZeroVal;
-      end else if (backup) begin
+      end else if (backup_o) begin
         rf_reg_backup_q[word] <= rf_reg[word];
       end
     end

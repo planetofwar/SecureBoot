@@ -157,7 +157,9 @@ module ibex_core import ibex_pkg::*; #(
   output logic                         alert_major_bus_o,
   output ibex_mubi_t                   core_busy_o,
   output logic                         compare_command,
-  output logic                         ctc_command
+  output logic                         ctc_command,
+  input logic backup_i,
+  input logic restore_i
 );
 
   localparam int unsigned PMPNumChan      = 3;
@@ -496,7 +498,9 @@ module ibex_core import ibex_pkg::*; #(
     .id_in_ready_i(id_in_ready),
 
     .pc_mismatch_alert_o(pc_mismatch_alert),
-    .if_busy_o          (if_busy)
+    .if_busy_o          (if_busy),
+    .restore_i(restore_i),
+    .backup_i(backup_i)
   );
 
   // Core is waiting for the ISide when ID/EX stage is ready for a new instruction but none are

@@ -35,7 +35,9 @@ module ibex_fetch_fifo #(
   output logic [31:0]         out_addr_o,
   output logic [31:0]         out_rdata_o,
   output logic                out_err_o,
-  output logic                out_err_plus2_o
+  output logic                out_err_plus2_o,
+  input logic backup_i,
+  input logic restore_i
 );
 
   localparam int unsigned DEPTH = NUM_REQS+1;
@@ -135,16 +137,22 @@ module ibex_fetch_fifo #(
   // Instruction address //
   /////////////////////////
 
+   logic [31:1]              backup_instr_addr_q;
   // Update the address on branches and every time an instruction is driven
   assign instr_addr_en = clear_i | (out_ready_i & out_valid_o);
 
   // Increment the address by two every time a compressed instruction is popped
   assign addr_incr_two = instr_addr_q[1] ? unaligned_is_compressed :
                                            aligned_is_compressed;
+  assign instr_addr_next = restore_i ? backup_instr_addr_q : (instr_addr_q[31:1] + {29'd0,~addr_incr_two,addr_incr_two});
 
-  assign instr_addr_next = (instr_addr_q[31:1] +
-                            // Increment address by 4 or 2
-                            {29'd0,~addr_incr_two,addr_incr_two});
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+        backup_instr_addr_q <= '0;
+      end else if (backup_i) begin
+        backup_instr_addr_q <= instr_addr_next;
+      end
+  end
 
   assign instr_addr_d = clear_i ? in_addr_i[31:1] :
                                   instr_addr_next;

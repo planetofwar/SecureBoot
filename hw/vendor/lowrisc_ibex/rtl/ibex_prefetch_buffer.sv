@@ -36,7 +36,9 @@ module ibex_prefetch_buffer #(
   input  logic        instr_rvalid_i,
 
   // Prefetch Buffer Status
-  output logic        busy_o
+  output logic        busy_o,
+  input logic backup_i,
+  input logic restore_i
 );
 
   localparam int unsigned NUM_REQS  = 2;
@@ -105,7 +107,9 @@ module ibex_prefetch_buffer #(
       .out_rdata_o           ( rdata_o           ),
       .out_addr_o            ( addr_o            ),
       .out_err_o             ( err_o             ),
-      .out_err_plus2_o       ( err_plus2_o       )
+      .out_err_plus2_o       ( err_plus2_o       ),
+      .restore_i (restore_i),
+      .backup_i (backup_i)
   );
 
   //////////////

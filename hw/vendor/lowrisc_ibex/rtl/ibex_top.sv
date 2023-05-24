@@ -368,6 +368,8 @@ module ibex_top import ibex_pkg::*; #(
     .debug_req_i,
     .crash_dump_o,
     .double_fault_seen_o,
+    .restore_i(restore),
+    .backup_i(backup),
 
 `ifdef RVFI
     .rvfi_valid,
@@ -417,7 +419,8 @@ module ibex_top import ibex_pkg::*; #(
   /////////////////////////////////
   // Register file Instantiation //
   /////////////////////////////////
-
+  logic restore;
+  logic backup;
   logic rf_alert_major_internal;
   if (RegFile == RegFileFF) begin : gen_regfile_ff
     ibex_register_file_ff #(
@@ -443,7 +446,9 @@ module ibex_top import ibex_pkg::*; #(
       .wdata_a_i(rf_wdata_wb_ecc),
       .we_a_i   (rf_we_wb),
       .err_o    (rf_alert_major_internal),
-      .comperator_mismatch_i (comperator_mismatch_i)
+      .comperator_mismatch_i (comperator_mismatch_i),
+      .restore_o(restore),
+      .backup_o(backup)
     );
   end else if (RegFile == RegFileFPGA) begin : gen_regfile_fpga
     ibex_register_file_fpga #(
