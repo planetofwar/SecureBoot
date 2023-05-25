@@ -44,8 +44,10 @@ module ibex_register_file_ff #(
 
   //for roll backer
   input logic comperator_mismatch_i,
-  output logic backup_o,
-  output logic restore_o
+  input logic ctc_command_i,
+  input logic IamMain,
+  input logic [38:0] rf_reg_shadow_i [32],
+  output logic [38:0] rf_reg_shadow_o [32]
 );
 
   localparam int unsigned ADDR_WIDTH = RV32E ? 4 : 5;
@@ -92,71 +94,46 @@ module ibex_register_file_ff #(
   end
 
   // No flops for R0 as it's hard-wired to 0
+  logic IamShadow = ~IamMain;
   for (genvar i = 1; i < NUM_WORDS; i++) begin : g_rf_flops
     logic [DataWidth-1:0] rf_reg_q [NUM_WORDS];
 
     always_ff @(posedge clk_i or negedge rst_ni) begin
       if (!rst_ni) begin
         rf_reg_q[i] <= WordZeroVal;
-      end else if (restore_o) begin
-        rf_reg_q[i] <= rf_reg_backup [i];
+      end else if (ctc_active) begin
+        rf_reg_q[i] <= ~(rf_reg_q[i]);
+      end else if (IamMain & comperator_mismatch_i) begin
+        rf_reg_q[i] <= rf_reg_shadow_i[i];
       end else if (we_a_dec[i]) begin
         rf_reg_q[i] <= wdata_a_i;
       end
     end
-
-    // Write to main registers write data or restore data from roll back.
+    // Write to main registers write data or destroy data for CTC.
     assign rf_reg[i] = rf_reg_q[i];
+    assign rf_reg_shadow_o[i] = rf_reg[i] & {39{IamShadow}};
   end
-  //------------------------------------//
-  // Backup register file for roll backer //
-  //-----------------------------------//
-  logic [DataWidth-1:0] rf_reg_backup   [NUM_WORDS];
-  logic [DataWidth-1:0] rf_reg_backup_q   [NUM_WORDS];
-  logic [4:0] count;
 
-  // counter state machine
+  logic ctc_active;
+  logic ctc_command_i_s1;
+
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
-      count <= 5'b0;
-    end
-    else begin
-      if (comperator_mismatch_i == 0) begin
-        count <= count + 1;
-      end
-      else begin // comperator_mismatch == 1
-        count <= 0;
-      end
+      ctc_command_i_s1 <= 1'b0;
+    end else begin
+      ctc_command_i_s1 <= ctc_command_i;
     end
   end
 
-  // outputs of state machine backup/restore
-  always_comb begin
-    case(comperator_mismatch_i)
-      1'b1: begin
-        backup_o = 1'b0;
-        restore_o = 1'b1;
-      end
-      default: begin // comperator_mismatch == 0
-         backup_o = (count == 5'd31);
-         restore_o =1'b0;
-      end
-    endcase
-  end
-
-  // write to backup registers on backup command
-  for (genvar word = 1 ; word < NUM_WORDS; word ++) begin : backup_reg_loop
-    always_ff @(posedge clk_i or negedge rst_ni) begin
-      if (!rst_ni) begin
-        rf_reg_backup_q[word] <= WordZeroVal;
-      end else if (backup_o) begin
-        rf_reg_backup_q[word] <= rf_reg[word];
-      end
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      ctc_active <= 1'b0;
+    end else if (ctc_command_i & ~ctc_command_i_s1) begin
+      ctc_active <= 1'b1;
+    end else begin
+      ctc_active <= 1'b0;
     end
-
-    assign rf_reg_backup[word] = rf_reg_backup_q[word];
   end
-  
 
   // With dummy instructions enabled, R0 behaves as a real register but will always return 0 for
   // real instructions.

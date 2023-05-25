@@ -353,8 +353,7 @@ hardened_bool_t bootstrap_requested(void) {
   res ^= SW_STRAP_BOOTSTRAP;
   res ^=
       abs_mmio_read32(TOP_EARLGREY_GPIO_BASE_ADDR + GPIO_DATA_IN_REG_OFFSET) &
-      SW_STRAP_MASK;
-  base_printf("####SERGEY IN bootstrap_requested#####\n");  
+      SW_STRAP_MASK; 
   // Sergey Part
   uint32_t test_var; // Sergey
   uint32_t existing_value;
@@ -365,7 +364,8 @@ hardened_bool_t bootstrap_requested(void) {
   write_value = existing_value | 16 ; // existing_value | 0000010000(binary) - compare command
   //base_printf("#### Writing to register = %x ####\n", write_value);
   CSR_WRITE(CSR_REG_MSTATUS, write_value);
-  write_value = existing_value | 32 ; // existing_value | 00000100000(binary) - ctc command
+  base_printf("####Writing CTC command#####\n"); 
+  write_value = existing_value | 48 ; // existing_value | 00000110000(binary) - ctc command
   CSR_WRITE(CSR_REG_MSTATUS, write_value);
   //base_printf("#### Writing to register = %x ####\n", write_value);
   //base_printf("#### Reading from register ####\n");

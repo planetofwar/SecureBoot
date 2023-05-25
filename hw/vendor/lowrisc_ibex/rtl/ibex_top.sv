@@ -141,7 +141,9 @@ module ibex_top import ibex_pkg::*; #(
   // DFT bypass controls
   input logic                          scan_rst_ni,
   output logic compare_command_o,
-  output logic ctc_command_o
+  input logic IamMain,
+  input logic [38:0] rf_reg_shadow_i [32],
+  output logic [38:0] rf_reg_shadow_o [32]
 );
 
   localparam bit          Lockstep          = SecureIbex;
@@ -368,8 +370,6 @@ module ibex_top import ibex_pkg::*; #(
     .debug_req_i,
     .crash_dump_o,
     .double_fault_seen_o,
-    .restore_i(restore),
-    .backup_i(backup),
 
 `ifdef RVFI
     .rvfi_valid,
@@ -413,14 +413,13 @@ module ibex_top import ibex_pkg::*; #(
     .alert_major_bus_o     (core_alert_major_bus),
     .core_busy_o           (core_busy_d),
     .compare_command       (compare_command_o),
-    .ctc_command           (ctc_command_o)
+    .ctc_command           (ctc_command)
   );
 
   /////////////////////////////////
   // Register file Instantiation //
   /////////////////////////////////
-  logic restore;
-  logic backup;
+  logic ctc_command;
   logic rf_alert_major_internal;
   if (RegFile == RegFileFF) begin : gen_regfile_ff
     ibex_register_file_ff #(
@@ -447,8 +446,10 @@ module ibex_top import ibex_pkg::*; #(
       .we_a_i   (rf_we_wb),
       .err_o    (rf_alert_major_internal),
       .comperator_mismatch_i (comperator_mismatch_i),
-      .restore_o(restore),
-      .backup_o(backup)
+      .ctc_command_i (ctc_command & IamMain),
+      .IamMain(IamMain),
+      .rf_reg_shadow_i(rf_reg_shadow_i),
+      .rf_reg_shadow_o(rf_reg_shadow_o)
     );
   end else if (RegFile == RegFileFPGA) begin : gen_regfile_fpga
     ibex_register_file_fpga #(

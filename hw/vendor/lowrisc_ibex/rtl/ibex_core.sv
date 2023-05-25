@@ -157,9 +157,7 @@ module ibex_core import ibex_pkg::*; #(
   output logic                         alert_major_bus_o,
   output ibex_mubi_t                   core_busy_o,
   output logic                         compare_command,
-  output logic                         ctc_command,
-  input logic backup_i,
-  input logic restore_i
+  output logic                         ctc_command
 );
 
   localparam int unsigned PMPNumChan      = 3;
@@ -498,9 +496,7 @@ module ibex_core import ibex_pkg::*; #(
     .id_in_ready_i(id_in_ready),
 
     .pc_mismatch_alert_o(pc_mismatch_alert),
-    .if_busy_o          (if_busy),
-    .restore_i(restore_i),
-    .backup_i(backup_i)
+    .if_busy_o          (if_busy)
   );
 
   // Core is waiting for the ISide when ID/EX stage is ready for a new instruction but none are
@@ -1113,7 +1109,7 @@ module ibex_core import ibex_pkg::*; #(
     .mul_wait_i                 (perf_mul_wait),
     .div_wait_i                 (perf_div_wait),
     .csr_mstatus_comp_o         (compare_command),
-    .csr_mstatus_ctc_o          (ctc_command)
+    .csr_mstatus_ctc_o         (ctc_command)
   );
 
   // These assertions are in top-level as instr_valid_id required as the enable term

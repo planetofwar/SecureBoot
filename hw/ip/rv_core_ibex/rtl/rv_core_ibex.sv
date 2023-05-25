@@ -413,22 +413,22 @@ module rv_core_ibex
     .hart_id_i,
     .boot_addr_i,
 
-    .instr_req_o        ( instr_req        ),
+    .instr_req_o        ( outputs_main.instr_req        ),
     .instr_gnt_i        ( instr_gnt        ),
     .instr_rvalid_i     ( instr_rvalid     ),
-    .instr_addr_o       ( instr_addr       ),
+    .instr_addr_o       ( outputs_main.instr_addr       ),
     .instr_rdata_i      ( instr_rdata      ),
     .instr_rdata_intg_i ( instr_rdata_intg ),
     .instr_err_i        ( instr_err        ),
 
-    .data_req_o         ( data_req         ),
+    .data_req_o         ( outputs_main.data_req         ),
     .data_gnt_i         ( data_gnt         ),
     .data_rvalid_i      ( data_rvalid      ),
-    .data_we_o          ( data_we          ),
-    .data_be_o          ( data_be          ),
-    .data_addr_o        ( data_addr        ),
-    .data_wdata_o       ( data_wdata       ),
-    .data_wdata_intg_o  ( data_wdata_intg  ),
+    .data_we_o          ( outputs_main.data_we          ),
+    .data_be_o          ( outputs_main.data_be          ),
+    .data_addr_o        ( outputs_main.data_addr        ),
+    .data_wdata_o       ( outputs_main.data_wdata       ),
+    .data_wdata_intg_o  ( outputs_main.data_wdata_intg  ),
     .data_rdata_i       ( data_rdata       ),
     .data_rdata_intg_i  ( data_rdata_intg  ),
     .data_err_i         ( data_err         ),
@@ -440,19 +440,21 @@ module rv_core_ibex
     .irq_nm_i           ( irq_nm           ),
 
     .debug_req_i,
-    .crash_dump_o       ( crash_dump       ),
+    .crash_dump_o       ( outputs_main.crash_dump       ),
 
     // icache scramble interface
     .scramble_key_valid_i (key_ack),
     .scramble_key_i       (key),
     .scramble_nonce_i     (nonce),
-    .scramble_req_o       (key_req),
+    .scramble_req_o       (outputs_main.key_req),
 
     // double fault
-    .double_fault_seen_o  (double_fault),
+    .double_fault_seen_o  (outputs_main.double_fault),
 
     // for roll backer
     .comperator_mismatch_i (outputs_mismatch),
+    .IamMain ('1),
+    .rf_reg_shadow_i(rf_reg_shadow),
 
 `ifdef RVFI
     .rvfi_valid,
@@ -481,12 +483,11 @@ module rv_core_ibex
 `endif
     // SEC_CM: FETCH.CTRL.LC_GATED
     .fetch_enable_i         (fetch_enable),
-    .alert_minor_o          (alert_minor),
-    .alert_major_internal_o (alert_major_internal),
-    .alert_major_bus_o      (alert_major_bus),
-    .core_sleep_o           (core_sleep),
-    .compare_command_o      (compare_command),
-    .ctc_command_o          (ctc_command)
+    .alert_minor_o          (outputs_main.alert_minor),
+    .alert_major_internal_o (outputs_main.alert_major_internal),
+    .alert_major_bus_o      (outputs_main.alert_major_bus),
+    .core_sleep_o           (outputs_main.core_sleep),
+    .compare_command_o      (compare_command)
   );
   core_outputs_t shadow_outputs;
 
@@ -532,11 +533,11 @@ module rv_core_ibex
     .DmHaltAddr               ( DmHaltAddr               ),
     .DmExceptionAddr          ( DmExceptionAddr          )
   ) u_shadow_core (
-    .clk_i              (ibex_top_clk_i),
+    .clk_i              (ibex_top_clk_i & secure_boot),
     .rst_ni,
 
 
-    .test_en_i          (prim_mubi_pkg::mubi4_test_true_strict(inputs_shadow_s2.scanmode_i)),
+    .test_en_i          (prim_mubi_pkg::mubi4_test_true_strict(inputs_shadow.scanmode_i)),
     .scan_rst_ni,
 
     .ram_cfg_i,
@@ -545,38 +546,38 @@ module rv_core_ibex
     .boot_addr_i,
 
     .instr_req_o        ( shadow_outputs.instr_req        ),
-    .instr_gnt_i        ( inputs_shadow_s2.instr_gnt),
-    .instr_rvalid_i     ( inputs_shadow_s2.instr_rvalid),
+    .instr_gnt_i        ( inputs_shadow.instr_gnt),
+    .instr_rvalid_i     ( inputs_shadow.instr_rvalid),
     .instr_addr_o       ( shadow_outputs.instr_addr     ),
-    .instr_rdata_i      ( inputs_shadow_s2.instr_rdata      ),
-    .instr_rdata_intg_i ( inputs_shadow_s2.instr_rdata_intg),
-    .instr_err_i        ( inputs_shadow_s2.instr_err        ),
+    .instr_rdata_i      ( inputs_shadow.instr_rdata      ),
+    .instr_rdata_intg_i ( inputs_shadow.instr_rdata_intg),
+    .instr_err_i        ( inputs_shadow.instr_err        ),
 
     .data_req_o         ( shadow_outputs.data_req         ),
-    .data_gnt_i         ( inputs_shadow_s2.data_gnt ),
-    .data_rvalid_i      ( inputs_shadow_s2.data_rvalid      ),
+    .data_gnt_i         ( inputs_shadow.data_gnt ),
+    .data_rvalid_i      ( inputs_shadow.data_rvalid      ),
     .data_we_o          ( shadow_outputs.data_we          ),
     .data_be_o          ( shadow_outputs.data_be          ),
     .data_addr_o        ( shadow_outputs.data_addr       ),
     .data_wdata_o       ( shadow_outputs.data_wdata       ),
     .data_wdata_intg_o  ( shadow_outputs.data_wdata_intg  ),
-    .data_rdata_i       ( inputs_shadow_s2.data_rdata ),
-    .data_rdata_intg_i  ( inputs_shadow_s2.data_rdata_intg ),
-    .data_err_i         ( inputs_shadow_s2.data_err         ),
+    .data_rdata_i       ( inputs_shadow.data_rdata ),
+    .data_rdata_intg_i  ( inputs_shadow.data_rdata_intg ),
+    .data_err_i         ( inputs_shadow.data_err         ),
 
-    .irq_software_i     ( inputs_shadow_s2.irq_software   ),
-    .irq_timer_i        ( inputs_shadow_s2.irq_timer      ),
-    .irq_external_i     ( inputs_shadow_s2.irq_external    ),
+    .irq_software_i     ( inputs_shadow.irq_software   ),
+    .irq_timer_i        ( inputs_shadow.irq_timer      ),
+    .irq_external_i     ( inputs_shadow.irq_external    ),
     .irq_fast_i         ( '0               ),
-    .irq_nm_i           ( inputs_shadow_s2.irq_nm          ),
+    .irq_nm_i           ( inputs_shadow.irq_nm          ),
 
     .debug_req_i,
     .crash_dump_o       ( shadow_outputs.crash_dump       ),
 
     // icache scramble interface
-    .scramble_key_valid_i (inputs_shadow_s2.key_ack),
-    .scramble_key_i       (inputs_shadow_s2.key),
-    .scramble_nonce_i     (inputs_shadow_s2.nonce),
+    .scramble_key_valid_i (inputs_shadow.key_ack),
+    .scramble_key_i       (inputs_shadow.key),
+    .scramble_nonce_i     (inputs_shadow.nonce),
     .scramble_req_o       (shadow_outputs.key_req),
 
     // double fault
@@ -584,6 +585,8 @@ module rv_core_ibex
 
     // for roll backer
     .comperator_mismatch_i (outputs_mismatch),
+    .IamMain ('0),
+    .rf_reg_shadow_o(rf_reg_shadow),
 
 `ifdef RVFI
     .rvfi_valid,
@@ -611,7 +614,7 @@ module rv_core_ibex
     .rvfi_mem_wdata,
 `endif
     // SEC_CM: FETCH.CTRL.LC_GATED
-    .fetch_enable_i         (inputs_shadow_s2.fetch_enable),
+    .fetch_enable_i         (inputs_shadow.fetch_enable),
     .alert_minor_o          (shadow_outputs.alert_minor),
     .alert_major_internal_o (shadow_outputs.alert_major_internal),
     .alert_major_bus_o      (shadow_outputs.alert_major_bus),
@@ -619,29 +622,30 @@ module rv_core_ibex
   );
   
   // Creation of skewed inputs for shadow core
-  core_inputs_t inputs;
+  core_inputs_t inputs_shadow;
   core_inputs_t inputs_shadow_s1;
   core_inputs_t inputs_shadow_s2;
+  logic [38:0] rf_reg_shadow [32];
 
-  assign inputs.scanmode_i = scanmode_i;
-  assign inputs.instr_gnt = instr_gnt;
-  assign inputs.instr_rvalid = instr_rvalid;
-  assign inputs.instr_rdata = instr_rdata;
-  assign inputs.instr_rdata_intg = instr_rdata_intg;
-  assign inputs.instr_err = instr_err;
-  assign inputs.data_gnt = data_gnt;
-  assign inputs.data_rvalid = data_rvalid;
-  assign inputs.data_rdata = data_rdata;
-  assign inputs.data_rdata_intg = data_rdata_intg;
-  assign inputs.data_err = data_err;
-  assign inputs.irq_software = irq_software;
-  assign inputs.irq_timer = irq_timer;
-  assign inputs.irq_external = irq_external;
-  assign inputs.irq_nm = irq_nm;
-  assign inputs.key_ack = key_ack;
-  assign inputs.key = key;
-  assign inputs.nonce = nonce;
-  assign inputs.fetch_enable = fetch_enable;
+  assign inputs_shadow.scanmode_i = scanmode_i;
+  assign inputs_shadow.instr_gnt = instr_gnt;
+  assign inputs_shadow.instr_rvalid = instr_rvalid;
+  assign inputs_shadow.instr_rdata = instr_rdata;
+  assign inputs_shadow.instr_rdata_intg = instr_rdata_intg;
+  assign inputs_shadow.instr_err = instr_err;
+  assign inputs_shadow.data_gnt = data_gnt;
+  assign inputs_shadow.data_rvalid = data_rvalid;
+  assign inputs_shadow.data_rdata = data_rdata;
+  assign inputs_shadow.data_rdata_intg = data_rdata_intg;
+  assign inputs_shadow.data_err = data_err;
+  assign inputs_shadow.irq_software = irq_software;
+  assign inputs_shadow.irq_timer = irq_timer;
+  assign inputs_shadow.irq_external = irq_external;
+  assign inputs_shadow.irq_nm = irq_nm;
+  assign inputs_shadow.key_ack = key_ack;
+  assign inputs_shadow.key = key;
+  assign inputs_shadow.nonce = nonce;
+  assign inputs_shadow.fetch_enable = fetch_enable;
 
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if(!rst_ni) begin
@@ -649,7 +653,7 @@ module rv_core_ibex
       inputs_shadow_s2 <= 0;
     end else begin
       if (secure_boot) begin
-        inputs_shadow_s1 <= inputs;
+        inputs_shadow_s1 <= inputs_shadow;
         inputs_shadow_s2 <= inputs_shadow_s1;
       end else begin
         inputs_shadow_s1 <= 0;
@@ -662,21 +666,21 @@ module rv_core_ibex
   core_outputs_t outputs_main_s1;
   core_outputs_t outputs_main_s2;
 
-  assign outputs_main.instr_req = instr_req;
-  assign outputs_main.instr_addr = instr_addr;
-  assign outputs_main.data_req = data_req;
-  assign outputs_main.data_we = data_we;
-  assign outputs_main.data_be = data_be;
-  assign outputs_main.data_addr = data_addr;
-  assign outputs_main.data_wdata = data_wdata;
-  assign outputs_main.data_wdata_intg = data_wdata_intg;
-  assign outputs_main.crash_dump = crash_dump;
-  assign outputs_main.key_req = key_req;
-  assign outputs_main.double_fault = double_fault;
-  assign outputs_main.alert_minor = alert_minor;
-  assign outputs_main.alert_major_internal = alert_major_internal;
-  assign outputs_main.alert_major_bus = alert_major_bus;
-  assign outputs_main.core_sleep = core_sleep;
+  assign instr_req = outputs_mismatch ? shadow_outputs.instr_req : outputs_main.instr_req;
+  assign instr_addr = outputs_mismatch ? shadow_outputs.instr_addr : outputs_main.instr_addr;
+  assign data_req = outputs_mismatch ? shadow_outputs.data_req : outputs_main.data_req;
+  assign data_we = outputs_mismatch ? shadow_outputs.data_we : outputs_main.data_we;
+  assign data_be = outputs_mismatch ? shadow_outputs.data_be : outputs_main.data_be;
+  assign data_addr = outputs_mismatch ? shadow_outputs.data_addr : outputs_main.data_addr;
+  assign data_wdata = outputs_mismatch ? shadow_outputs.data_wdata : outputs_main.data_wdata;
+  assign data_wdata_intg = outputs_mismatch ? shadow_outputs.data_wdata_intg : outputs_main.data_wdata_intg;
+  assign crash_dump = outputs_mismatch ? shadow_outputs.crash_dump : outputs_main.crash_dump;
+  assign key_req = outputs_mismatch ? shadow_outputs.key_req : outputs_main.key_req;
+  assign double_fault = outputs_mismatch ? shadow_outputs.double_fault : outputs_main.double_fault;
+  assign alert_minor = outputs_mismatch ? shadow_outputs.alert_minor : outputs_main.alert_minor;
+  assign alert_major_internal = outputs_mismatch ? shadow_outputs.alert_major_internal : outputs_main.alert_major_internal;
+  assign alert_major_bus = outputs_mismatch ? shadow_outputs.alert_major_bus : outputs_main.alert_major_bus;
+  assign core_sleep = outputs_mismatch ? shadow_outputs.core_sleep : outputs_main.core_sleep;
 
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if(!rst_ni) begin
@@ -693,50 +697,13 @@ module rv_core_ibex
     end
   end
 
-  // Check the checker logic for shaow comparator
-  logic activate_ctc;
-  // State machine to ensure that ctc is up only for one cycle.
-  localparam [1:0] // 3 states
-    ctc_ready = 2'b00,
-    ctc_active = 2'b01,
-    ctc_recharge = 2'b10;
-  logic [1:0] ctc_state, ctc_next;
-  always_ff @(posedge clk_i or negedge rst_ni) begin
-    if(!rst_ni)
-      ctc_state <= ctc_ready;
-    else
-      ctc_state <= ctc_next;
-  end
-  always_comb begin
-    ctc_next = ctc_state;
-    case(ctc_state)
-      ctc_ready: begin
-        activate_ctc = '0;
-        if(ctc_command)
-          ctc_next = ctc_active;
-        else
-          ctc_next = ctc_ready;
-      end
-      ctc_active: begin
-        activate_ctc = '1;
-        ctc_next = ctc_recharge;
-      end
-      ctc_recharge: begin
-        activate_ctc = '0;
-        if(ctc_command)
-          ctc_next = ctc_recharge;
-        else
-          ctc_next = ctc_ready;
-      end
-    endcase
-  end
   // Output comparator 
   logic compare_enable_comparator;
   logic outputs_mismatch;
   logic compare_command;
 
   assign compare_enable_comparator = secure_boot && compare_command;
-  assign outputs_mismatch = (compare_enable_comparator & (shadow_outputs != outputs_main_s2)) | activate_ctc;
+  assign outputs_mismatch = (compare_enable_comparator & (shadow_outputs != outputs_main));
 
 
   logic core_sleep_q;
