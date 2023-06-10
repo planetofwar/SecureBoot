@@ -160,6 +160,24 @@ module ibex_core import ibex_pkg::*; #(
   output logic                         ctc_command
 );
 
+/*
+  logic ctc_pulse;
+  logic pulse_duration;
+
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      ctc_pulse <= 1'b0;
+      pulse_duration <= 1'b0;
+    end else if ((ctc_command) && (!ctc_pulse)) begin
+      ctc_pulse <= 1'b1;
+      pulse_duration <= 1'b1;
+    end else if (pulse_duration) begin
+      ctc_pulse <= 1'b0;
+      pulse_duration <= 1'b0;
+    end
+  end
+*/
+
   localparam int unsigned PMPNumChan      = 3;
   // SEC_CM: CORE.DATA_REG_SW.SCA
   localparam bit          DataIndTiming     = SecureIbex;
@@ -1108,6 +1126,7 @@ module ibex_core import ibex_pkg::*; #(
     .dside_wait_i               (perf_dside_wait),
     .mul_wait_i                 (perf_mul_wait),
     .div_wait_i                 (perf_div_wait),
+    //.ctc_pulse_i                (ctc_pulse),
     .csr_mstatus_comp_o         (compare_command),
     .csr_mstatus_ctc_o         (ctc_command)
   );

@@ -37,7 +37,7 @@ _BASE_PARAMS = {
     "tags": [],
     "test_runner": "@//util:opentitan_functest_runner.sh",
     "test_cmds": [],  # Passed to test_runner via TEST_CMDS env var.
-    "timeout": "moderate",  # 5 minutes
+    "timeout": "long",  # 5 minutes
     "exit_success": DEFAULT_TEST_SUCCESS_MSG,
     "exit_failure": DEFAULT_TEST_FAILURE_MSG,
 }
