@@ -372,6 +372,11 @@ hardened_bool_t bootstrap_requested(void) {
   base_printf("\t##### Third Writing to MSTATUS register (ctc comand) = %x #####\n", write_value);
   CSR_READ(CSR_REG_MSTATUS, &existing_value);
   base_printf("\t##### Forth Read MSTATUS register (ctc command is off) = %x #####\n", existing_value);
+  CSR_READ(CSR_REG_MSTATUS, &existing_value);
+  base_printf("\t##### Fifth Read MSTATUS register = %x #####\n", existing_value);
+  write_value = existing_value & -17 ; // existing_value & 1111111111 1111111111 1111111011 11(binary) - compare command
+  CSR_WRITE(CSR_REG_MSTATUS, write_value);
+    base_printf("\t##### Second Writing to MSTATUS register (compare comand to off) = %x #####\n", write_value);
   // Sergey Part
 
   if (launder32(res) != kHardenedBoolTrue) {
