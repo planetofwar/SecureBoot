@@ -119,6 +119,7 @@ module ibex_cs_registers #(
   input  logic                 dside_wait_i,                // core waiting for the dside
   input  logic                 mul_wait_i,                  // core waiting for multiply
   input  logic                 div_wait_i,                  // core waiting for divide
+  // input  logic ctc_pulse_i,
   output logic csr_mstatus_comp_o, //compare command
   output logic csr_mstatus_ctc_o   //ctc command
 );
@@ -324,12 +325,29 @@ module ibex_cs_registers #(
   assign mip.irq_external = irq_external_i;
   assign mip.irq_fast     = irq_fast_i;
 
+ /* 
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if(!rst_ni) begin
+      mstatus_q.ctc <= 0;
+    end else begin
+      if (mstatus_q.ctc) begin
+        mstatus_q.ctc <= 0;
+      end 
+    end
+  end
+*/
+
   // read logic
   always_comb begin
     csr_rdata_int = '0;
     illegal_csr   = 1'b0;
     dbg_csr       = 1'b0;
-
+    /*
+    if (ctc_pulse_i) begin
+      mstatus_q.ctc     = 1'b0;
+      csr_rdata_int[CSR_MSTATUS_SHADOW_CTC]  = 1'b0;
+    end  
+    */
     unique case (csr_addr_i)
       // mvendorid: encoding of manufacturer/provider
       CSR_MVENDORID: csr_rdata_int = CSR_MVENDORID_VALUE;
@@ -352,8 +370,12 @@ module ibex_cs_registers #(
         csr_rdata_int[CSR_MSTATUS_TW_BIT]                               = mstatus_q.tw;
         csr_rdata_int[CSR_MSTATUS_COMPARE_COMMAND]                      = mstatus_q.comp;
         csr_rdata_int[CSR_MSTATUS_SHADOW_CTC]                           = mstatus_q.ctc;
+        // if (ctc_pulse_i) begin
+        //   csr_rdata_int[CSR_MSTATUS_SHADOW_CTC]  = 1'b0;
+        //   csr_wdata_int[CSR_MSTATUS_SHADOW_CTC]  = 1'b0;
+        //   mstatus_q.ctc = 0;
+        // end 
       end
-
       // mstatush: All zeros for Ibex (fixed little endian and all other bits reserved)
       CSR_MSTATUSH: csr_rdata_int = '0;
 
@@ -863,9 +885,23 @@ module ibex_cs_registers #(
 
   ////////////////////////
   // CSR instantiations //
-  ////////////////////////
+  ////////////////////////s
 
   // MSTATUS
+
+  /*
+    logic test_ctc;                                        
+  always_comb begin
+    if (ctc_pulse_i) begin
+      mstatus_en = 1'b1; 
+      mstatus_d.ctc = 1'b0;
+      mstatus_q.ctc = 1'b0;
+      csr_rdata_int[CSR_MSTATUS_SHADOW_CTC]  = 1'b0;
+      csr_wdata_int[CSR_MSTATUS_SHADOW_CTC]  = 1'b0;
+      test_ctc = 1;
+    end
+  end  
+  */
   localparam status_t MSTATUS_RST_VAL = '{mie:  1'b0,
                                           comp: 1'b0,
                                           ctc: 1'b0,
@@ -873,6 +909,7 @@ module ibex_cs_registers #(
                                           mpp:  PRIV_LVL_U,
                                           mprv: 1'b0,
                                           tw:   1'b0};
+
   ibex_csr #(
     .Width     ($bits(status_t)),
     .ShadowCopy(ShadowCSR),
@@ -882,6 +919,7 @@ module ibex_cs_registers #(
     .rst_ni    (rst_ni),
     .wr_data_i ({mstatus_d}),
     .wr_en_i   (mstatus_en),
+    .mstatus_en_i(1'b1),
     .rd_data_o (mstatus_q),
     .rd_error_o(mstatus_err)
   );

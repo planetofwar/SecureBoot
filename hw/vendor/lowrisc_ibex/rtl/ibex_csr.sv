@@ -18,19 +18,32 @@ module ibex_csr #(
 
   input  logic [Width-1:0] wr_data_i,
   input  logic             wr_en_i,
+  input  logic             mstatus_en_i,
   output logic [Width-1:0] rd_data_o,
 
   output logic             rd_error_o
 );
-
+  logic ctc_pulse;
   logic [Width-1:0] rdata_q;
 
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
       rdata_q <= ResetValue;
-    end else if (wr_en_i) begin
-      rdata_q <= wr_data_i;
-    end
+      ctc_pulse <= 1'b0;
+    end else if (wr_en_i)  begin
+      if (ctc_pulse) begin
+        ctc_pulse <= 1'b0;
+        rdata_q <= wr_data_i & 32'b11111111111111111111111111011111;
+      end else begin
+        rdata_q <= wr_data_i;
+        if ((wr_data_i[5]) && (mstatus_en_i)) begin 
+          ctc_pulse <= 1'b1;
+        end  
+      end  
+    end else if (ctc_pulse) begin
+        ctc_pulse <= 1'b0;
+        rdata_q <= wr_data_i & 32'b11111111111111111111111111011111;
+    end     
   end
 
   assign rd_data_o = rdata_q;

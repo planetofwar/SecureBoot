@@ -73,7 +73,6 @@ typedef enum bootstrap_state {
  * @return Result of the operation.
  */
 static rom_error_t bootstrap_chip_erase(void) {
-  base_printf("####SERGEY IN bootstrap_chip_erase#####\n"); 
   flash_ctrl_bank_erase_perms_set(kHardenedBoolTrue);
   rom_error_t err_0 = flash_ctrl_data_erase(0, kFlashCtrlEraseTypeBank);
   rom_error_t err_1 = flash_ctrl_data_erase(FLASH_CTRL_PARAM_BYTES_PER_BANK,
@@ -103,7 +102,6 @@ static rom_error_t bootstrap_sector_erase(uint32_t addr) {
      */
     kPageAddrMask = ~UINT32_C(4096) + 1,
   };
-  base_printf("####SERGEY IN bootstrap_sector_erase#####\n"); 
   if (addr >= kMaxAddress) {
     return kErrorBootstrapEraseAddress;
   }
@@ -145,8 +143,7 @@ static rom_error_t bootstrap_sector_erase(uint32_t addr) {
 static rom_error_t bootstrap_page_program(uint32_t addr, size_t byte_count,
                                           uint8_t *data) {
   static_assert(__builtin_popcount(FLASH_CTRL_PARAM_BYTES_PER_WORD) == 1,
-                "Bytes per flash word must be a power of two.");
-  base_printf("####SERGEY IN bootstrap_page_program#####\n");   			
+                "Bytes per flash word must be a power of two.");	
   enum {
     /**
      * Mask for checking that `addr` is flash word aligned.
@@ -287,7 +284,6 @@ static rom_error_t bootstrap_handle_erase_verify(bootstrap_state_t *state) {
  * @return Result of the operation.
  */
 static rom_error_t bootstrap_handle_program(bootstrap_state_t *state) {
-  base_printf("####SERGEY IN bootstrap_handle_program#####\n"); 
   static_assert(alignof(spi_device_cmd_t) >= sizeof(uint32_t) &&
                     offsetof(spi_device_cmd_t, payload) >= sizeof(uint32_t),
                 "Payload must be word aligned.");
@@ -354,24 +350,30 @@ hardened_bool_t bootstrap_requested(void) {
   res ^=
       abs_mmio_read32(TOP_EARLGREY_GPIO_BASE_ADDR + GPIO_DATA_IN_REG_OFFSET) &
       SW_STRAP_MASK; 
+
   // Sergey Part
-  uint32_t test_var; // Sergey
+  uint32_t test_var;
   uint32_t existing_value;
   uint32_t write_value;
-  //base_printf("#### Reading existing ####\n");
   CSR_READ(CSR_REG_MSTATUS, &existing_value);
-  //base_printf("##################### RESULT existing = %x #####################\n", existing_value);
+  base_printf("\t##### First Read MSTATUS register = %x #####\n", existing_value);
   write_value = existing_value | 16 ; // existing_value | 0000010000(binary) - compare command
-  //base_printf("#### Writing to register = %x ####\n", write_value);
   CSR_WRITE(CSR_REG_MSTATUS, write_value);
-  base_printf("####Writing CTC command#####\n"); 
+  base_printf("\t##### First Writing to MSTATUS register (compare comand) = %x #####\n", write_value);
+  CSR_READ(CSR_REG_MSTATUS, &existing_value);
+  base_printf("\t##### Second Read MSTATUS register (compare comand) = %x #####\n", existing_value);
   write_value = existing_value | 48 ; // existing_value | 00000110000(binary) - ctc command
   CSR_WRITE(CSR_REG_MSTATUS, write_value);
-  //base_printf("#### Writing to register = %x ####\n", write_value);
-  //base_printf("#### Reading from register ####\n");
-  //CSR_READ(CSR_REG_MSTATUS, &test_var);
-  //base_printf("##################### RESULT = %x ########################\n", test_var);
+  base_printf("\t##### Second Writing to MSTATUS register (ctc comand) = %x #####\n", write_value);
+  CSR_READ(CSR_REG_MSTATUS, &existing_value);
+  base_printf("\t##### Third Read MSTATUS register (ctc command is off) = %x #####\n", existing_value);
+  write_value = existing_value | 48 ; // existing_value | 00000110000(binary) - ctc command
+  CSR_WRITE(CSR_REG_MSTATUS, write_value);
+  base_printf("\t##### Third Writing to MSTATUS register (ctc comand) = %x #####\n", write_value);
+  CSR_READ(CSR_REG_MSTATUS, &existing_value);
+  base_printf("\t##### Forth Read MSTATUS register (ctc command is off) = %x #####\n", existing_value);
   // Sergey Part
+
   if (launder32(res) != kHardenedBoolTrue) {
     return kHardenedBoolFalse;
   }
