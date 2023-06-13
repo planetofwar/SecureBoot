@@ -33,16 +33,16 @@ module ibex_csr #(
     end else if (wr_en_i)  begin
       if (ctc_pulse) begin
         ctc_pulse <= 1'b0;
-        rdata_q <= wr_data_i & 32'b11111111111111111111111111011111;
+        rdata_q <= wr_data_i & 32'b11111111111111111111111111001111;
       end else begin
         rdata_q <= wr_data_i;
-        if ((wr_data_i[5]) && (mstatus_en_i)) begin 
+        if ((wr_data_i[5] | wr_data_i[4]) && (mstatus_en_i)) begin 
           ctc_pulse <= 1'b1;
         end  
       end  
     end else if (ctc_pulse) begin
         ctc_pulse <= 1'b0;
-        rdata_q <= wr_data_i & 32'b11111111111111111111111111011111;
+        rdata_q <= wr_data_i & 32'b11111111111111111111111111001111;
     end     
   end
 
